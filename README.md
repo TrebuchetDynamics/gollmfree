@@ -4,6 +4,8 @@
 
 `gollmfree` is a pure Go library and CLI for routing chat-completion requests to currently available anonymous/free LLM providers without API keys, sign-up, browser automation, Docker, a server process, or extra infrastructure.
 
+This project is a partial Go port/reference implementation based on [`xtekky/gpt4free`](https://github.com/xtekky/gpt4free). Provider behavior, model aliases, request shaping, and fallback ideas should be studied from upstream before each implementation slice, then adapted into tested Go code rather than vendoring Python source.
+
 ## Install
 
 The intended module path is:
@@ -47,16 +49,25 @@ gollmfree list
 gollmfree models
 ```
 
+## Upstream reference
+
+Canonical upstream reference:
+
+- Repository: <https://github.com/xtekky/gpt4free>
+- Role: source reference for provider behavior, provider metadata, request formats, parsing behavior, streaming behavior, and fallback strategy.
+- Porting policy: inspect current upstream source and commit SHA for every provider slice; document what was ported, changed, omitted, or postponed.
+- License note: GitHub reports upstream as GPL-3.0. License/notice obligations must be confirmed and preserved before release and before closely porting provider code.
+
 ## Provider status
 
-| Provider | Status | Notes |
-| --- | --- | --- |
-| DeepAI | planned | First vertical-slice provider; live endpoint must be re-validated. |
-| ChatgptAi | planned | Include only if current endpoint remains simple and unauthenticated. |
-| Yqcloud | planned | Include only if endpoint remains active. |
-| ChatgptLogin | planned | Lower priority; include only if complexity stays low. |
-| Ails | postponed candidate | Include only if stable and not too complex. |
-| You.com | postponed candidate | Postpone if session/header flow is complex. |
+| Provider | Status | Upstream reference | Notes |
+| --- | --- | --- | --- |
+| DeepAI | planned | inspect upstream before T2.0 | First vertical-slice provider; live endpoint must be re-validated. |
+| ChatgptAi | planned | inspect upstream before T4.1 | Include only if current endpoint remains simple and unauthenticated. |
+| Yqcloud | planned | inspect upstream before T4.1 | Include only if endpoint remains active. |
+| ChatgptLogin | planned | inspect upstream before T4.1 | Lower priority; include only if complexity stays low. |
+| Ails | postponed candidate | inspect upstream before T4.1 | Include only if stable and not too complex. |
+| You.com | postponed candidate | inspect upstream before T4.1 | Postpone if session/header flow is complex. |
 
 ## Testing policy
 

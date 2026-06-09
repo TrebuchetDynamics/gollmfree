@@ -3,7 +3,7 @@
 > **Project:** `gollmfree`
 > **Type:** Pure Go library + CLI
 > **Proposed module path:** `github.com/TrebuchetDynamics/gollmfree`
-> **Inspiration:** Python [`xtekky/gpt4free`](https://github.com/xtekky/gpt4free) provider strategy
+> **Upstream reference:** Python [`xtekky/gpt4free`](https://github.com/xtekky/gpt4free) provider strategy and provider implementations; `gollmfree` is a partial Go port, not a clean-room unrelated design.
 > **Primary consumer:** `gormes-agent`
 > **Version target:** v0.1.0
 > **Planning status:** Master project file; update this document before and after every implementation slice.
@@ -72,8 +72,9 @@ Keep this table current. Do not mark a milestone `done` unless every task in tha
 | Blocker | Status | Owner action needed | Unblocks |
 | --- | --- | --- | --- |
 | Final module owner path unknown | resolved | Module path chosen: `github.com/TrebuchetDynamics/gollmfree`. | T0.1, install docs, examples. |
+| Upstream `gpt4free` license/notice handling | open | Confirm GPL-3.0 obligations, preserve attribution, and add third-party notices before provider ports. | T0.5, T2.x, T4.x, release docs. |
 | `gormes-agent` LLM interface unknown | open | Inspect repository/interface before M6. | T6.1, T6.2. |
-| Live provider viability unknown | open | Re-check endpoints during provider viability pass. | T2.1, T4.1-T4.4. |
+| Live provider viability unknown | open | Re-check endpoints during provider viability pass using upstream `gpt4free` as the first reference. | T2.1, T4.1-T4.4. |
 
 ### 0.7 Evidence Log
 
@@ -84,7 +85,29 @@ Keep this table current. Do not mark a milestone `done` unless every task in tha
 | 2026-06-09 | T0.2 Scaffold module | Scaffold task; no production behavior test required. | `go test ./...`; `git diff --check` | `go.mod`, `doc.go`, `GOLLMFREE-PRD.md` | T0.3 |
 | 2026-06-09 | T0.3 Add CI skeleton | CI configuration task; no production behavior test required. | `.github/workflows/test.yml` runs `go test ./...` and `go vet ./...`; local `go test ./...`; local `go vet ./...`; `git diff --check` | `.github/workflows/test.yml`, `GOLLMFREE-PRD.md` | T1.1 |
 
-### 0.8 Update Discipline
+### 0.8 Upstream Reference Discipline
+
+`gollmfree` is a partial Go port of the provider strategy and selected provider behavior from `xtekky/gpt4free`. Every provider, selector, model-alias, and request-shaping task must start by checking current upstream `gpt4free` source and recording what was ported, changed, omitted, or intentionally redesigned for Go.
+
+Required upstream evidence for provider work:
+
+- upstream repository URL and commit SHA inspected;
+- exact upstream provider file(s), registry/model metadata, and helper utilities referenced;
+- request URL, method, headers, payload, response parsing, streaming behavior, and error behavior compared against the Go implementation;
+- reason for every deviation from upstream, such as Go idioms, no browser automation, no auth/session complexity, or v0.1.0 scope;
+- license/attribution note updated when code or behavior is ported.
+
+Upstream reference commands should use a local clone/cache when possible, for example:
+
+```bash
+git clone https://github.com/xtekky/gpt4free .upstream/gpt4free
+git -C .upstream/gpt4free rev-parse HEAD
+find .upstream/gpt4free -iname '*deepai*' -o -iname '*provider*'
+```
+
+Do not vendor upstream Python code into the Go module. Port behavior intentionally, test it through Go public seams, and preserve attribution.
+
+### 0.9 Update Discipline
 
 Every implementation PR or agent session must update at least one of:
 
@@ -92,6 +115,7 @@ Every implementation PR or agent session must update at least one of:
 - Detailed Backlog row done signal/evidence.
 - Decision Log.
 - Blocker Log.
+- Upstream reference evidence for any provider/selector/model work.
 - Known Gaps.
 - Definition of Done checklist.
 
@@ -113,7 +137,7 @@ The CLI exposes the same capability from the terminal for immediate manual use a
 
 - Provide a pure Go client library with a zero-configuration default.
 - Support synchronous and streaming chat-completion APIs.
-- Port a small set of simple, reliable `g4f` providers first.
+- Port a small set of simple, reliable `g4f` providers first by studying current `xtekky/gpt4free` source before each provider slice.
 - Rank providers automatically by explicit priority and dynamic health.
 - Fall back across providers when one fails.
 - Offer a CLI binary named `gollmfree` using the same library path.
@@ -434,6 +458,23 @@ If `gormes-agent` requires a custom interface, provide an adapter example in `ex
 
 ## 8. Architecture Plan
 
+### 8.0 Upstream Port Architecture
+
+The architecture is intentionally informed by `xtekky/gpt4free`, but adapted into a Go library/CLI with strict seams, deterministic tests, and no required browser automation or credentials.
+
+Porting map:
+
+| Upstream `gpt4free` concern | Go port location | Porting rule |
+| --- | --- | --- |
+| Provider classes/modules | `providers/<name>.go` | One Go provider file per selected upstream provider; port request/parse behavior and document deviations. |
+| Provider registry/model metadata | `registry.go`, provider metadata | Preserve useful aliases/priorities where compatible; normalize for Go API. |
+| Provider selection/fallback strategy | `selector.go`, `health.go` | Use upstream strategy as reference, but implement concurrency-safe Go ranking and cooldown. |
+| Streaming behavior | `Provider.Stream`, `Client.ChatCompletionStream` | Port native streaming when simple; otherwise emulate one-shot stream and document. |
+| Error behavior | `errors.go` | Preserve provider context while using Go `errors.Is`/wrapping idioms. |
+| HTTP/header/session helpers | provider-local helpers | Port only simple unauthenticated flows for v0.1.0; postpone browser/session-heavy flows. |
+
+Every port must be a tested Go behavior, not a line-by-line Python translation. The target is a partial, maintainable Go port that keeps provider fragility local and lets `gpt4free` remain the canonical upstream reference for provider behavior.
+
 ### 8.1 Architectural Principles
 
 - Keep the public API small: callers interact with `Client`, `ChatRequest`, response types, and functional options.
@@ -704,18 +745,21 @@ Alias normalization rules:
 
 ### 8.15 Provider Implementation Playbook
 
-Each provider should be added as a vertical slice:
+Each provider should be added as a vertical slice with upstream `gpt4free` as the first reference:
 
-1. Create `providers/<name>.go` with a small struct containing `http.Client`, endpoint URL, and optional test override URL.
-2. Implement `Name`, `SupportedModels`, `Complete`, and `Stream`.
-3. Build requests from `[]Message` using a helper that preserves role/content order.
-4. Set only required public headers and document any copied browser-like headers in comments.
-5. Parse successful responses into `CompletionResponse` with provider name set.
-6. Convert non-2xx responses and malformed payloads into `ProviderError` with status/body snippet limits.
-7. Respect `ctx` on every `http.NewRequestWithContext` call.
-8. Emulate streaming by calling `Complete` and sending one chunk when native streaming is unavailable.
-9. Add `httptest` unit tests for happy path, provider error, malformed response, timeout/cancel, and stream emulation.
-10. Add integration test guarded by `//go:build integration` and environment variables if live smoke testing is useful.
+1. Locate and read the current upstream `gpt4free` provider source, registry/model metadata, and any helper utilities it uses.
+2. Record the upstream commit SHA, source path(s), endpoint/status, and chosen porting decisions in PRD evidence and README provider notes.
+3. Create `providers/<name>.go` with a small struct containing `http.Client`, endpoint URL, and optional test override URL.
+4. Implement `Name`, `SupportedModels`, `Complete`, and `Stream`.
+5. Build requests from `[]Message` using a helper that preserves role/content order.
+6. Set only required public headers and document any copied browser-like headers in comments.
+7. Parse successful responses into `CompletionResponse` with provider name set.
+8. Convert non-2xx responses and malformed payloads into `ProviderError` with status/body snippet limits.
+9. Respect `ctx` on every `http.NewRequestWithContext` call.
+10. Emulate streaming by calling `Complete` and sending one chunk when native streaming is unavailable.
+11. Add `httptest` unit tests for happy path, provider error, malformed response, timeout/cancel, and stream emulation.
+12. Add tests that lock the ported request shape/response parsing against fixtures derived from upstream behavior where legally safe.
+13. Add integration test guarded by `//go:build integration` and environment variables if live smoke testing is useful.
 
 Provider status should be documented in README as one of:
 
@@ -937,13 +981,15 @@ Exit criteria:
 | T0.1 | Choose module path | `go.mod`, PRD, README placeholders | None | Module path is `github.com/TrebuchetDynamics/gollmfree`; no old placeholder path remains unless intentionally documented. |
 | T0.2 | Scaffold module | `go.mod`, folders, `.gitignore` if needed | T0.1 | `go test ./...` runs successfully on scaffold. |
 | T0.3 | Add CI skeleton | `.github/workflows/test.yml` | T0.2 | Workflow runs `go test ./...` on push/PR. |
-| T0.4 | Create living README skeleton | `README.md` | T0.1 | README has project status, install/module path placeholder, quick start placeholders, provider status table, testing policy, and privacy caveats. |
+| T0.4 | Create living README skeleton | `README.md` | T0.1 | README has project status, install/module path placeholder, quick start placeholders, provider status table, testing policy, upstream `gpt4free` reference, and privacy caveats. |
+| T0.5 | Upstream reference and license baseline | `.upstream/` notes or PRD evidence, `THIRD_PARTY_NOTICES.md`, README | T0.4 | Upstream `xtekky/gpt4free` URL, commit SHA, GPL-3.0 license facts, attribution/notice policy, and no-vendoring rule are documented. |
 | T1.1 | Public types | `types.go`, `README.md` | T0.2 | Types match FR-4, have GoDoc comments, and README quick-start API snippet is updated or explicitly marked pending. |
 | T1.2 | Provider interface | `provider.go` | T1.1 | Interface matches FR-1 and fake provider compiles. |
 | T1.3 | Registry | `registry.go`, `registry_test.go` | T1.2 | Tests cover aliases, duplicate names, unknown model, returned-copy behavior. |
 | T1.4 | Client options | `options.go`, `client.go`, tests | T1.1 | Tests cover defaults and invalid option handling. |
 | T1.5 | Fake-provider harness | `internal/testprovider` or test files | T1.2 | Selector/client tests can simulate success, failure, delay, stream. |
-| T2.1 | DeepAI endpoint research | notes in provider comments/README | T1.2 | Current endpoint status is documented with date/source. |
+| T2.0 | DeepAI upstream source study | PRD evidence, README provider notes | T0.5, T1.2 | Upstream `gpt4free` commit/path(s), request shape, response parsing, streaming support, and deviations for DeepAI are documented before Go code. |
+| T2.1 | DeepAI endpoint research | notes in provider comments/README | T2.0 | Current endpoint status is documented with date/source and compared with upstream `gpt4free`. |
 | T2.2 | DeepAI implementation | `providers/deepai.go` | T2.1 | `httptest` happy path returns `CompletionResponse`. |
 | T2.3 | DeepAI error tests | `providers/deepai_test.go` | T2.2 | Tests cover non-2xx, malformed JSON/body, context cancellation. |
 | T2.4 | DeepAI stream emulation | `providers/deepai.go`, tests | T2.2 | Stream closes and emits one chunk for non-streaming response. |
@@ -953,7 +999,7 @@ Exit criteria:
 | T3.3 | Sequential fallback | `client.go`, `selector.go`, tests | T3.2 | Test proves failed provider falls through to next and combined error includes all failures. |
 | T3.4 | Timeouts/retries | `client.go`, `options.go`, tests | T3.3 | Tests prove per-attempt timeout and bounded retry count. |
 | T3.5 | Race mode | `selector.go`, `client.go`, tests | T3.3 | Deterministic fake test proves first success wins and canceled losers are not marked failed. |
-| T4.1 | Provider viability pass | README provider table | T2.1 | ChatgptAi/Yqcloud/ChatgptLogin/Ails/You.com statuses recorded. |
+| T4.1 | Provider viability pass | README provider table, upstream study notes | T2.1 | ChatgptAi/Yqcloud/ChatgptLogin/Ails/You.com upstream paths, current statuses, and port/postpone decisions recorded. |
 | T4.2 | ChatgptAi provider | `providers/chatgptai.go`, tests | T4.1 | Mocked tests pass or provider is explicitly postponed. |
 | T4.3 | Yqcloud provider | `providers/yqcloud.go`, tests | T4.1 | Mocked tests pass or provider is explicitly postponed. |
 | T4.4 | Additional provider decision | provider file or docs | T4.1 | At least one of ChatgptLogin/Ails/You.com implemented or postponed with reason. |
@@ -984,11 +1030,13 @@ Exit criteria:
 | NFR concurrency | `go test -race ./...` for health/client tests where practical. |
 | NFR resilience | Tests for deadlines, retries, cooldown expiry, combined errors. |
 | Privacy/security | README caveat, no prompt logging by default, no credentials in provider APIs. |
+| Upstream partial port | For each ported provider/selector behavior, evidence lists upstream `gpt4free` commit/path, ported behavior, deviations, tests, and attribution/license handling. |
 | Living documentation | README exists from scaffolding and has been refreshed at each milestone that changed user-facing behavior/status. |
 
 ### 9.5 Known Gaps to Close During Implementation
 
 - Final module owner path is resolved as `github.com/TrebuchetDynamics/gollmfree`; keep install docs/import examples aligned with it.
+- Upstream `xtekky/gpt4free` is GPL-3.0; confirm and maintain license/notice obligations before release and before copying or closely porting provider code.
 - Live status of every proposed provider must be re-verified; the PRD intentionally does not assume endpoints still work.
 - `gormes-agent` interface is unknown until inspected.
 - Stream error reporting after a stream starts is limited in v0.1.0; document this limitation if not solved.
@@ -1245,6 +1293,8 @@ gollmfree chat --stream "Say hello in one sentence"
 
 ## 13. Security, Privacy, and Compliance Notes
 
+- `gollmfree` is a partial Go port/reference implementation based on `xtekky/gpt4free`; preserve upstream attribution and license notices.
+- Upstream `xtekky/gpt4free` is reported by GitHub as GPL-3.0; release planning must confirm compatibility and include appropriate license/third-party notices.
 - Prompts are sent to third-party anonymous providers; users must not send secrets or sensitive data.
 - The README MUST disclose that providers are not controlled by this project.
 - The project MUST not collect credentials.
@@ -1285,6 +1335,7 @@ Update this checklist as work lands. Every checked item must have TDD evidence, 
 - [x] Choose final module path and update this PRD.
 - [x] Create `go.mod`.
 - [x] Create living `README.md` skeleton during scaffolding.
+- [ ] Add upstream `gpt4free` reference/license baseline and `THIRD_PARTY_NOTICES.md`.
 - [ ] Add `types.go`.
 - [ ] Add `provider.go`.
 - [ ] Add `registry.go`.
@@ -1309,6 +1360,7 @@ Gollmfree v0.1.0 is done when:
 - A Go consumer can import the module and call `gollmfree.NewClient()` with no required config.
 - `ChatCompletion` and `ChatCompletionStream` are implemented.
 - At least one real provider works, and multiple providers are registered or documented with current status.
+- Every ported provider documents upstream `gpt4free` commit/path, behavior ported, deviations, tests, and attribution/license handling.
 - Ranked selector fallback is covered by tests.
 - Health tracking is concurrency-safe and covered by tests.
 - CLI commands `chat`, `chat --stream`, `list`, and `models` work.
