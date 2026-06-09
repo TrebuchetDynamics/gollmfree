@@ -1,10 +1,10 @@
 # Gollmfree Product Requirements Document
 
-> **Project:** `gollmfree`  
-> **Type:** Pure Go library + CLI  
-> **Proposed module path:** `github.com/TrebuchetDynamics/gollmfree`  
-> **Inspiration:** Python [`xtekky/gpt4free`](https://github.com/xtekky/gpt4free) provider strategy  
-> **Primary consumer:** `gormes-agent`  
+> **Project:** `gollmfree`
+> **Type:** Pure Go library + CLI
+> **Proposed module path:** `github.com/TrebuchetDynamics/gollmfree`
+> **Inspiration:** Python [`xtekky/gpt4free`](https://github.com/xtekky/gpt4free) provider strategy
+> **Primary consumer:** `gormes-agent`
 > **Version target:** v0.1.0
 > **Planning status:** Master project file; update this document before and after every implementation slice.
 > **Development mode:** Strict TDD. No production implementation without a failing test or documented spike exception.
@@ -131,13 +131,13 @@ The CLI exposes the same capability from the terminal for immediate manual use a
 
 ## 3. Target Users
 
-1. **Developer integrating with `gormes-agent`**  
+1. **Developer integrating with `gormes-agent`**
    Wants a zero-cost LLM backend that can be swapped into the agent framework quickly.
 
-2. **Go developers needing a free LLM client**  
+2. **Go developers needing a free LLM client**
    Want an API that feels close enough to OpenAI chat completions but does not require keys or billing.
 
-3. **CLI users and maintainers**  
+3. **CLI users and maintainers**
    Want to test provider availability and get quick completions from a terminal.
 
 ## 4. Key User Stories
