@@ -43,20 +43,20 @@ Keep this table current. Do not mark a milestone `done` unless every task in tha
 
 | Milestone | Status | Current task | Required evidence before `done` |
 | --- | --- | --- | --- |
-| M0 Decisions and Scaffold | done | T1.1 Public types | Final module path chosen; `go.mod` created; living README exists; CI skeleton exists; `go test ./...` runs. |
-| M1 Core API and Test Harness | todo | T1.1 Public types | Public API types, provider interface, registry, options, fake-provider harness, tests passing. |
-| M2 First Provider Vertical Slice | todo | T2.1 DeepAI endpoint research | DeepAI mocked tests pass; integration smoke test is opt-in and skipped by default. |
-| M3 Selector, Health, and Fallback | todo | T3.1 Health store | Deterministic tests for ranking, fallback, cooldown, retries, race mode, concurrency. |
-| M4 Provider Portfolio | todo | T4.1 Provider viability pass | At least three providers implemented or explicitly status-documented with tests/stubs. |
+| M0 Decisions and Scaffold | done | Complete | Final module path chosen; `go.mod` created; living README exists; CI skeleton exists; `go test ./...` runs. |
+| M1 Core API and Test Harness | done | Complete | Public API types, provider interface, registry, options, fake-provider harness, tests passing. |
+| M2 First Provider Vertical Slice | done | Complete | PollinationsAI mocked tests pass; integration smoke test is opt-in and skipped by default; DeepAI is documented as postponed/replaced. |
+| M3 Selector, Health, and Fallback | done | Complete | Deterministic tests for ranking, fallback, cooldown, retries, race mode, concurrency. |
+| M4 Provider Portfolio | todo | T4.2 Chatai provider | At least three providers implemented or explicitly status-documented with tests/stubs. |
 | M5 CLI | todo | T5.1 CLI command router | `go install ./cmd/gollmfree`; `list`/`models` no-network tests; `chat`/stream use client path. |
 | M6 `gormes-agent` Integration | todo | T6.1 Inspect `gormes-agent` | Actual interface inspected; compiling example/adapter or documented blocker. |
 | M7 Release Hardening | todo | T7.1 README quick start | README, examples, GoDoc, CI, `go test ./...`, `go vet ./...`, DoD checklist complete. |
 
 ### 0.4 Current Next Action
 
-- **Next task:** T1.1 Public types.
-- **Reason:** M0 scaffold is complete; the first implementation slice is defining the public request/response types through a failing compile/example test.
-- **First test/evidence:** A focused test/example should fail until `types.go` defines `Message`, `ChatRequest`, `CompletionResponse`, `Choice`, and `StreamChunk`.
+- **Next task:** T4.2 Chatai provider.
+- **Reason:** T4.1 provider viability pass found legacy ChatgptAi/ChatgptLogin/Ails absent from current upstream, You.com auth/browser-heavy, and Chatai/Yqcloud/WeWordle as current no-auth candidates. Chatai is selected as the next provider implementation because upstream marks it `working = True`, `needs_auth = False`, and its mocked SSE shape is small.
+- **First test/evidence:** `providers` package `httptest` SSE test should fail until `providers/chatai.go` POSTs upstream-shaped JSON (`machineId`, `msg`, `token`, `type`) to the configured endpoint and parses `data:` OpenAI delta chunks into `gollmfree.CompletionResponse`.
 
 ### 0.5 Decision Log
 
@@ -64,6 +64,8 @@ Keep this table current. Do not mark a milestone `done` unless every task in tha
 | --- | --- | --- | --- |
 | 2026-06-09 | Use `github.com/TrebuchetDynamics/gollmfree` as the module path. | Public GitHub repository `TrebuchetDynamics/gollmfree` was created. | If ownership/repository path changes before release. |
 | TBD | Use `providers/` subpackage for provider implementations. | Keeps provider fragility local and matches maintainability goal. | If import cycles or registration ergonomics become poor. |
+| 2026-06-09 | Postpone DeepAI and use PollinationsAI for the first provider vertical slice. | Current upstream `gpt4free` no longer contains DeepAI; PollinationsAI is current upstream, no-auth by default, active, and exposes an OpenAI-shaped text endpoint suitable for deterministic `httptest` porting. | If DeepAI endpoint is independently revalidated or PollinationsAI becomes auth/session-heavy. |
+| 2026-06-09 | Replace legacy ChatgptAi backlog item with current upstream Chatai. | Current upstream has `g4f/Provider/Chatai.py` but no `ChatgptAi` provider; Chatai is no-auth, stream-capable, and close to the intended simple provider shape. | If ChatgptAi returns upstream or Chatai's static token/mobile API stops working. |
 | TBD | Race mode disabled by default. | Avoids extra traffic to anonymous providers. | If sequential mode success latency is unacceptable. |
 | TBD | CLI uses standard `flag` for v0.1.0. | Keeps dependencies minimal. | If command UX becomes complex enough to justify Cobra. |
 
@@ -72,9 +74,9 @@ Keep this table current. Do not mark a milestone `done` unless every task in tha
 | Blocker | Status | Owner action needed | Unblocks |
 | --- | --- | --- | --- |
 | Final module owner path unknown | resolved | Module path chosen: `github.com/TrebuchetDynamics/gollmfree`. | T0.1, install docs, examples. |
-| Upstream `gpt4free` license/notice handling | open | Confirm GPL-3.0 obligations, preserve attribution, and add third-party notices before provider ports. | T0.5, T2.x, T4.x, release docs. |
+| Upstream `gpt4free` license/notice handling | baseline documented | `THIRD_PARTY_NOTICES.md` records GPL-3.0 upstream facts, inspected commit/files, attribution/no-vendoring policy; legal compatibility remains a release review item. | T2.x, T4.x, release docs. |
 | `gormes-agent` LLM interface unknown | open | Inspect repository/interface before M6. | T6.1, T6.2. |
-| Live provider viability unknown | open | Re-check endpoints during provider viability pass using upstream `gpt4free` as the first reference. | T2.1, T4.1-T4.4. |
+| Live provider viability unknown | partially researched | T4.1 current-upstream viability pass documented candidate source/status; live endpoint success remains unverified unless opt-in integration tests are run. | T4.2-T4.4, release docs. |
 
 ### 0.7 Evidence Log
 
@@ -84,6 +86,24 @@ Keep this table current. Do not mark a milestone `done` unless every task in tha
 | 2026-06-09 | T0.4 Create living README skeleton | Documentation task; no production behavior test required. | README created with status, install path, planned API/CLI, provider table, testing policy, privacy caveats. | `README.md`, `GOLLMFREE-PRD.md` | T0.2/T0.3 |
 | 2026-06-09 | T0.2 Scaffold module | Scaffold task; no production behavior test required. | `go test ./...`; `git diff --check` | `go.mod`, `doc.go`, `GOLLMFREE-PRD.md` | T0.3 |
 | 2026-06-09 | T0.3 Add CI skeleton | CI configuration task; no production behavior test required. | `.github/workflows/test.yml` runs `go test ./...` and `go vet ./...`; local `go test ./...`; local `go vet ./...`; `git diff --check` | `.github/workflows/test.yml`, `GOLLMFREE-PRD.md` | T1.1 |
+| 2026-06-09 | T1.1 Public types | `go test ./... -run TestPublicChatTypesHaveFR4JSONShape` failed to build because `CompletionResponse`, `Choice`, `Message`, `StreamChunk`, and `ChatRequest` were undefined. | `go test ./... -run TestPublicChatTypesHaveFR4JSONShape`; `go test ./...`; `go vet ./...`; `git diff --check` | `types.go`, `types_test.go`, `README.md`, `GOLLMFREE-PRD.md` | T1.2 |
+| 2026-06-09 | T1.2 Provider interface | `go test ./... -run TestProviderInterfaceAcceptsFakeProvider` failed to build because `Provider`, `ProviderInfo`, and `ModelInfo` were undefined. | `go test ./... -run 'TestProviderInterfaceAcceptsFakeProvider|TestProviderMetadataCopies'`; `go test ./...`; `go vet ./...`; `git diff --check` | `provider.go`, `provider_test.go`, `README.md`, `GOLLMFREE-PRD.md` | T1.3 |
+| 2026-06-09 | T1.3 Registry | `go test ./... -run 'TestRegistry'` failed to build because `NewRegistry` was undefined. | `go test ./... -run 'TestRegistry'`; `go test ./...`; `go vet ./...`; `git diff --check` | `registry.go`, `registry_test.go`, `README.md`, `GOLLMFREE-PRD.md` | T1.4 |
+| 2026-06-09 | T1.4 Client options | `go test ./... -run 'TestNewClient'` failed to build because `NewClient`, `WithTimeout`, `WithMaxRetries`, `WithRaceMode`, `WithRaceWidth`, and `WithProviderPriority` were undefined. | `go test ./... -run 'TestNewClient'`; `go test ./...`; `go vet ./...`; `git diff --check` | `client.go`, `options.go`, `options_test.go`, `README.md`, `GOLLMFREE-PRD.md` | T1.5 |
+| 2026-06-09 | T1.5 Fake-provider harness | `go test ./internal/testprovider -run 'TestFakeProvider'` failed to build because fake provider constructor/options were undefined. | `go test ./internal/testprovider -run 'TestFakeProvider'`; `go test ./...`; `go vet ./...`; `git diff --check` | `internal/testprovider/provider.go`, `internal/testprovider/provider_test.go`, `GOLLMFREE-PRD.md` | T0.5 |
+| 2026-06-09 | T0.5 Upstream reference/license baseline | Documentation/research prerequisite; no production behavior test required. | `.upstream/gpt4free` cloned at `798d8586b180cd8e6fc4b2b2a6a0c8a410de22ca`; inspected `LICENSE` (GPL-3.0), `LEGAL_NOTICE.md`, `README.md`; `THIRD_PARTY_NOTICES.md` created; `.upstream/` ignored; `go test ./...`; `go vet ./...`; `git diff --check` | `.gitignore`, `THIRD_PARTY_NOTICES.md`, `README.md`, `GOLLMFREE-PRD.md` | T2.0 |
+| 2026-06-09 | T2.0 DeepAI upstream source study | Research prerequisite; no production behavior test required. | `git -C .upstream/gpt4free grep -n -i 'deepai\\|deep ai' -- .` returned no matches; no `g4f/Provider/*DeepAI*` path exists at commit `798d8586b180cd8e6fc4b2b2a6a0c8a410de22ca`; inspected `g4f/Provider/__init__.py`, `g4f/models.py`, `g4f/providers/any_provider.py`, `g4f/providers/retry_provider.py`; current upstream provider/model registry omits DeepAI. | `README.md`, `GOLLMFREE-PRD.md` | T2.1 / first-provider decision |
+| 2026-06-09 | T2.1 DeepAI endpoint research / first-provider decision | Research prerequisite; no production behavior test required. | DeepAI postponed/replaced because current upstream has no DeepAI provider/model metadata; selected PollinationsAI from `g4f/Provider/PollinationsAI.py` as first provider. Upstream evidence: no-auth path uses `text_api_endpoint = "https://text.pollinations.ai/openai"`, default model `openai-fast`, `stream` flag in JSON body, OpenAI-shaped request through `_generate_text`, response read through OpenAI-template stream/parser; aliases include `gpt-4.1-nano -> openai-fast`; provider is `active_by_default = True`, `working = True`. | `README.md`, `GOLLMFREE-PRD.md` | T2.2 PollinationsAI implementation |
+| 2026-06-09 | T2.2 PollinationsAI implementation | `go test ./providers -run TestPollinationsAICompletePostsOpenAIShapeAndParsesResponse` failed to build because `NewPollinationsAI` and `WithPollinationsEndpoint` were undefined. | `go test ./providers -run TestPollinationsAICompletePostsOpenAIShapeAndParsesResponse`; `go test ./...`; `go vet ./...`; `git diff --check` | `providers/pollinationsai.go`, `providers/pollinationsai_test.go`, `README.md`, `GOLLMFREE-PRD.md` | T2.3 PollinationsAI error tests |
+| 2026-06-09 | T2.3 PollinationsAI error tests | `go test ./providers -run 'TestPollinationsAICompleteReturnsProviderNamedErrorForNon2xx\\|TestPollinationsAICompleteReturnsProviderNamedErrorForMalformedJSON\\|TestPollinationsAICompletePreservesContextCancellation'` failed because non-2xx errors omitted the upstream body snippet. | `go test ./providers -run 'TestPollinationsAICompleteReturnsProviderNamedErrorForNon2xx\\|TestPollinationsAICompleteReturnsProviderNamedErrorForMalformedJSON\\|TestPollinationsAICompletePreservesContextCancellation'`; `go test ./...`; `go vet ./...`; `git diff --check` | `providers/pollinationsai.go`, `providers/pollinationsai_test.go`, `README.md`, `GOLLMFREE-PRD.md` | T2.4 PollinationsAI stream emulation |
+| 2026-06-09 | T2.4 PollinationsAI stream emulation | Regression coverage for behavior introduced during T2.2; no failing red produced because `Stream` already emulated via `Complete`. | `go test ./providers -run TestPollinationsAIStreamEmitsOneCompleteChunkAndCloses`; `go test ./...`; `go vet ./...`; `git diff --check` | `providers/pollinationsai_test.go`, `README.md`, `GOLLMFREE-PRD.md` | T2.5 integration smoke gate |
+| 2026-06-09 | T2.5 PollinationsAI integration smoke gate | Integration gate; no production behavior test required. | `providers/pollinationsai_integration_test.go` added with `//go:build integration` and `GOLLMFREE_POLLINATIONS_LIVE=1` opt-in; normal `go test ./...` excludes live network; `go test -tags=integration ./providers -run TestPollinationsAILiveSmoke` skips unless env is set; `go vet ./...`; `git diff --check` | `providers/pollinationsai_integration_test.go`, `README.md`, `GOLLMFREE-PRD.md` | T3.1 |
+| 2026-06-09 | T3.1 Health store | `go test ./... -run 'TestHealthStore'` failed to build because `NewHealthStore` was undefined. | `go test ./... -run 'TestHealthStore'`; `go test -race ./... -run TestHealthStoreConcurrencySafeSnapshots`; `go test ./...`; `go vet ./...`; `git diff --check` | `health.go`, `health_test.go`, `README.md`, `GOLLMFREE-PRD.md` | T3.2 |
+| 2026-06-09 | T3.2 Ranking | `go test ./... -run 'TestSelectorRank'` failed to build because `NewSelector` was undefined. | `go test ./... -run 'TestSelectorRank'`; `go test ./...`; `go vet ./...`; `git diff --check` | `selector.go`, `selector_test.go`, `README.md`, `GOLLMFREE-PRD.md` | T3.3 |
+| 2026-06-09 | T3.3 Sequential fallback | `go test ./... -run 'TestClientChatCompletion'` failed to build because `ChatCompletion`, client health wiring, and `Health` were undefined. | `go test ./... -run 'TestClientChatCompletion'`; `go test ./... -run 'TestSelectorRank\\|TestClientChatCompletion'`; `go test ./...`; `go vet ./...`; `git diff --check` | `client.go`, `client_test.go`, `errors.go`, `README.md`, `GOLLMFREE-PRD.md` | T3.4 |
+| 2026-06-09 | T3.4 Timeouts/retries | `go test ./... -run 'TestClientChatCompletionRetriesProviderBeforeFallback\\|TestClientChatCompletionPerAttemptTimeoutFallsBack'` timed out because provider attempts were not wrapped in per-attempt contexts and retries were not implemented. | `go test ./... -run 'TestClientChatCompletionRetriesProviderBeforeFallback\\|TestClientChatCompletionPerAttemptTimeoutFallsBack'`; `go test ./... -run 'TestClientChatCompletion'`; `go test ./...`; `go vet ./...`; `git diff --check` | `client.go`, `client_test.go`, `README.md`, `GOLLMFREE-PRD.md` | T3.5 |
+| 2026-06-09 | T3.5 Race mode | `go test ./... -run TestClientChatCompletionRaceModeFirstSuccessWinsWithoutCanceledLoserFailure` failed because sequential mode returned the slower first-ranked provider instead of racing top candidates. | `go test ./... -run TestClientChatCompletionRaceModeFirstSuccessWinsWithoutCanceledLoserFailure`; `go test ./... -run 'TestClientChatCompletionRetriesProviderBeforeFallback\\|TestClientChatCompletionPerAttemptTimeoutFallsBack\\|TestClientChatCompletionRaceModeFirstSuccessWinsWithoutCanceledLoserFailure'`; `go test -race ./... -run TestClientChatCompletionRaceModeFirstSuccessWinsWithoutCanceledLoserFailure`; `go test ./...`; `go vet ./...`; `git diff --check` | `client.go`, `client_test.go`, `README.md`, `GOLLMFREE-PRD.md` | T4.1 |
+| 2026-06-09 | T4.1 Provider viability pass | Research prerequisite; no production behavior test required. | Upstream commit `798d8586b180cd8e6fc4b2b2a6a0c8a410de22ca`; legacy `ChatgptAi`, `ChatgptLogin`, and `Ails` providers absent; inspected `g4f/Provider/Chatai.py` (working/no-auth/SSE; selected next), `g4f/Provider/Yqcloud.py` (working/no-auth/plain stream; viable), `g4f/Provider/WeWordle.py` (working/no-auth/JSON or raw stream with retry; viable), `g4f/Provider/needs_auth/You.py` (needs auth/browser; postponed), `g4f/Provider/LambdaChat.py` (`working = False`, multi-step cookies/form; postponed). | `README.md`, `GOLLMFREE-PRD.md` | T4.2 Chatai provider |
 
 ### 0.8 Upstream Reference Discipline
 
@@ -1000,9 +1020,9 @@ Exit criteria:
 | T3.4 | Timeouts/retries | `client.go`, `options.go`, tests | T3.3 | Tests prove per-attempt timeout and bounded retry count. |
 | T3.5 | Race mode | `selector.go`, `client.go`, tests | T3.3 | Deterministic fake test proves first success wins and canceled losers are not marked failed. |
 | T4.1 | Provider viability pass | README provider table, upstream study notes | T2.1 | ChatgptAi/Yqcloud/ChatgptLogin/Ails/You.com upstream paths, current statuses, and port/postpone decisions recorded. |
-| T4.2 | ChatgptAi provider | `providers/chatgptai.go`, tests | T4.1 | Mocked tests pass or provider is explicitly postponed. |
+| T4.2 | Chatai provider | `providers/chatai.go`, tests | T4.1 | Mocked SSE request/parse tests pass or provider is explicitly postponed. |
 | T4.3 | Yqcloud provider | `providers/yqcloud.go`, tests | T4.1 | Mocked tests pass or provider is explicitly postponed. |
-| T4.4 | Additional provider decision | provider file or docs | T4.1 | At least one of ChatgptLogin/Ails/You.com implemented or postponed with reason. |
+| T4.4 | Additional provider decision | provider file or docs | T4.1 | WeWordle implemented or ChatgptLogin/Ails/You.com/LambdaChat postponed with reason. |
 | T5.1 | CLI command router | `cmd/gollmfree/main.go` | T1.4 | Usage errors return exit code 2. |
 | T5.2 | CLI `models` | CLI + tests | T1.3 | Runs without network and prints aliases/providers. |
 | T5.3 | CLI `list` | CLI + tests | T3.1 | Runs without network and prints provider health/status. |
@@ -1038,6 +1058,8 @@ Exit criteria:
 - Final module owner path is resolved as `github.com/TrebuchetDynamics/gollmfree`; keep install docs/import examples aligned with it.
 - Upstream `xtekky/gpt4free` is GPL-3.0; confirm and maintain license/notice obligations before release and before copying or closely porting provider code.
 - Live status of every proposed provider must be re-verified; the PRD intentionally does not assume endpoints still work.
+- Current upstream `gpt4free` commit `798d8586b180cd8e6fc4b2b2a6a0c8a410de22ca` no longer contains a DeepAI provider or DeepAI model metadata; DeepAI must be externally revalidated before reconsideration.
+- Current upstream also no longer contains legacy ChatgptAi, ChatgptLogin, or Ails provider files; Chatai, Yqcloud, and WeWordle are the current no-auth provider portfolio candidates, while You.com is auth/browser-heavy and LambdaChat is marked not working.
 - `gormes-agent` interface is unknown until inspected.
 - Stream error reporting after a stream starts is limited in v0.1.0; document this limitation if not solved.
 - Race mode needs a policy for whether to continue sequentially after race candidates fail; recommended behavior is continue sequentially for v0.1.0.
@@ -1335,14 +1357,14 @@ Update this checklist as work lands. Every checked item must have TDD evidence, 
 - [x] Choose final module path and update this PRD.
 - [x] Create `go.mod`.
 - [x] Create living `README.md` skeleton during scaffolding.
-- [ ] Add upstream `gpt4free` reference/license baseline and `THIRD_PARTY_NOTICES.md`.
-- [ ] Add `types.go`.
-- [ ] Add `provider.go`.
-- [ ] Add `registry.go`.
-- [ ] Add first provider implementation.
-- [ ] Add mock provider tests.
-- [ ] Add TDD evidence receipts for each completed backlog item.
-- [ ] Add `selector.go` and health tracking.
+- [x] Add upstream `gpt4free` reference/license baseline and `THIRD_PARTY_NOTICES.md`.
+- [x] Add `types.go`.
+- [x] Add `provider.go`.
+- [x] Add `registry.go`.
+- [x] Add first provider implementation.
+- [x] Add mock provider tests.
+- [x] Add TDD evidence receipts for each completed backlog item.
+- [x] Add `selector.go` and health tracking.
 - [ ] Add `client.go`.
 - [ ] Add CLI under `cmd/gollmfree`.
 - [ ] Add examples.
