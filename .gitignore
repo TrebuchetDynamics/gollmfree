@@ -1,1 +1,26 @@
+# Built CLI binary
+/gollmfree
+
+# Upstream research notes (not committed per THIRD_PARTY_NOTICES.md policy)
 .upstream/
+
+# Go build and test artifacts
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+*.test
+*.out
+/vendor/
+
+# Coverage and profiling
+coverage.out
+cpu.prof
+mem.prof
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
